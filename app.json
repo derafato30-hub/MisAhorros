@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "MisAhorros",
+    "slug": "mis-ahorros",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "misahorros",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.misahorros.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0F19"
+      },
+      "package": "com.misahorros.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
