@@ -4,10 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  Briefcase,
   CalendarClock,
   CreditCard,
   Eye,
   EyeOff,
+  Landmark,
+  PiggyBank,
   Plus,
   Sparkles,
   TrendingUp,
@@ -27,6 +30,12 @@ export default function DashboardHomeScreen() {
   const activeProfileType = useAppStore((s) => s.activeProfileType);
   const financialProfiles = useAppStore((s) => s.financialProfiles);
   const accounts = useAppStore((s) => s.accounts);
+  const creditCards = useAppStore((s) => s.creditCards);
+  const payables = useAppStore((s) => s.payables);
+  const loans = useAppStore((s) => s.loans);
+  const instruments = useAppStore((s) => s.instruments);
+  const savingsGoals = useAppStore((s) => s.savingsGoals);
+  const budgets = useAppStore((s) => s.budgets);
   const recentTransactions = useAppStore((s) => s.recentTransactions);
   const hideBalances = useAppStore((s) => s.hideBalances);
   const toggleHideBalances = useAppStore((s) => s.toggleHideBalances);
@@ -36,10 +45,39 @@ export default function DashboardHomeScreen() {
     [financialProfiles, activeProfileType]
   );
 
-  const profileAccounts = useMemo(() => {
-    if (!activeProfile) return accounts;
-    return accounts.filter((a) => a.profile_id === activeProfile.id);
-  }, [accounts, activeProfile]);
+  const profileAccounts = useMemo(
+    () => (activeProfile ? accounts.filter((a) => a.profile_id === activeProfile.id) : accounts),
+    [accounts, activeProfile]
+  );
+
+  const profileCards = useMemo(
+    () =>
+      activeProfile
+        ? creditCards.filter((c) => c.profile_id === activeProfile.id)
+        : creditCards,
+    [creditCards, activeProfile]
+  );
+
+  const profilePayables = useMemo(
+    () =>
+      activeProfile
+        ? payables.filter((p) => p.profile_id === activeProfile.id && p.status !== 'paid')
+        : payables,
+    [payables, activeProfile]
+  );
+
+  const profileLoans = useMemo(
+    () => (activeProfile ? loans.filter((l) => l.profile_id === activeProfile.id) : loans),
+    [loans, activeProfile]
+  );
+
+  const profileTransactions = useMemo(
+    () =>
+      activeProfile
+        ? recentTransactions.filter((t) => t.profile_id === activeProfile.id)
+        : recentTransactions,
+    [recentTransactions, activeProfile]
+  );
 
   const totalInBaseCurrency = useMemo(() => {
     return profileAccounts
@@ -48,7 +86,6 @@ export default function DashboardHomeScreen() {
         if (item.currency === preferences.default_currency) {
           return acc + item.current_balance;
         }
-        // Conversión automática aproximada HNL <-> USD
         if (item.currency === 'USD' && preferences.default_currency === 'HNL') {
           return acc + item.current_balance * 25.0;
         }
@@ -65,6 +102,66 @@ export default function DashboardHomeScreen() {
     }
     return formatMoney(totalInBaseCurrency * 25.0, 'HNL', hideBalances) + ' HNL';
   }, [totalInBaseCurrency, preferences.default_currency, hideBalances]);
+
+  // Métricas Contables de Flujo de Caja (Ingresos vs Gastos = Utilidad Neta)
+  const cashflowMetrics = useMemo(() => {
+    const incomes = profileTransactions
+      .filter((t) => t.transaction_type === 'income')
+      .reduce((s, t) => s + t.amount, 0);
+    const expenses = profileTransactions
+      .filter((t) => t.transaction_type === 'expense')
+      .reduce((s, t) => s + t.amount, 0);
+    return {
+      incomes,
+      expenses,
+      netProfit: incomes - expenses,
+    };
+  }, [profileTransactions]);
+
+  // Consejo financiero inteligente calculado sobre los datos actuales del usuario
+  const dynamicFinancialTip = useMemo(() => {
+    const totalCardDebt = profileCards.reduce(
+      (s, c) => s + c.statement_balance + c.unbilled_balance,
+      0
+    );
+    const totalCreditLimit = profileCards.reduce((s, c) => s + c.credit_limit, 0);
+    const utilization = totalCreditLimit > 0 ? (totalCardDebt / totalCreditLimit) * 100 : 0;
+
+    if (activeProfileType === 'business') {
+      if (cashflowMetrics.netProfit > 0) {
+        return `Tu negocio presenta una Utilidad Neta positiva de ${formatMoney(
+          cashflowMetrics.netProfit,
+          preferences.default_currency,
+          hideBalances
+        )}. Te sugerimos reservar el 20% en un Depósito a Plazo para capital de trabajo e impuestos.`;
+      }
+      return 'Registra tus ventas y costos operativos separados de tu cuenta personal para calcular tu margen de utilidad neta en tiempo real.';
+    }
+
+    if (utilization > 40) {
+      return `Alerta de Crédito: Estás utilizando el ${utilization.toFixed(
+        0
+      )}% del límite de tus tarjetas. Pagar el saldo al corte antes del vencimiento evitará cargos por intereses rotativos.`;
+    }
+
+    if (profilePayables.length > 0) {
+      return `Tienes ${profilePayables.length} pago(s) fijo(s) o cuotas próximas a vencer. Liquídalas a tiempo para evitar recargos por tasa moratoria.`;
+    }
+
+    return `Tu liquidez actual es de ${formatMoney(
+      totalInBaseCurrency,
+      preferences.default_currency,
+      hideBalances
+    )}. Excelente momento para programar un aporte automático a tu Fondo de Emergencia o Certificado a Plazo.`;
+  }, [
+    activeProfileType,
+    cashflowMetrics.netProfit,
+    hideBalances,
+    preferences.default_currency,
+    profileCards,
+    profilePayables.length,
+    totalInBaseCurrency,
+  ]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.surface.background }]}>
@@ -102,7 +199,7 @@ export default function DashboardHomeScreen() {
             ]}
           >
             {activeProfileType === 'business'
-              ? `Caja Consolidada • ${activeProfile?.display_name || 'Mi Negocio'}`
+              ? `Liquidez del Negocio • ${activeProfile?.display_name || 'Mi Negocio'}`
               : `Hola, ${preferences.full_name || 'Usuario'} • Balance Total`}
           </Text>
 
@@ -119,7 +216,6 @@ export default function DashboardHomeScreen() {
             ≈ {secondaryEquivalent}
           </Text>
 
-          {/* Etiquetas de estado del perfil */}
           <View style={styles.badgesRow}>
             {preferences.is_salaried && activeProfileType === 'personal' && (
               <View
@@ -130,7 +226,7 @@ export default function DashboardHomeScreen() {
               >
                 <TrendingUp size={13} color={theme.accent.primary} />
                 <Text style={[styles.statusChipText, { color: theme.accent.primary }]}>
-                  Modo Asalariado Activo
+                  Asalariado / Nómina
                 </Text>
               </View>
             )}
@@ -141,23 +237,73 @@ export default function DashboardHomeScreen() {
                   { backgroundColor: theme.accent.softBg, borderColor: theme.accent.primary },
                 ]}
               >
-                <Sparkles size={13} color={theme.accent.primary} />
+                <Briefcase size={13} color={theme.accent.primary} />
                 <Text style={[styles.statusChipText, { color: theme.accent.primary }]}>
-                  Contabilidad de Negocio
+                  Contabilidad Pyme Activa
                 </Text>
               </View>
             )}
           </View>
         </View>
 
-        {/* Tarjetas Rápidas de Cuentas (Efectivo, Bancos) */}
+        {/* Tarjeta Especial de Contabilidad Básica cuando está activo "Mi Negocio" o Resumen de Flujo */}
+        <View
+          style={[
+            styles.cashflowCard,
+            { backgroundColor: theme.surface.surface1, borderColor: theme.surface.border },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.surface.textPrimary }]}>
+            {activeProfileType === 'business'
+              ? 'Estado de Resultados & Flujo de Caja del Negocio'
+              : 'Flujo de Ingresos vs. Gastos del Período'}
+          </Text>
+          <View style={styles.cashflowRow}>
+            <View style={styles.cashflowCol}>
+              <Text style={{ color: theme.surface.textSecondary, fontSize: 11 }}>
+                {activeProfileType === 'business' ? 'Ventas e Ingresos' : 'Ingresos / Nómina'}
+              </Text>
+              <Text style={[styles.cashflowVal, { color: theme.surface.success }]}>
+                +{formatMoney(cashflowMetrics.incomes, preferences.default_currency, hideBalances)}
+              </Text>
+            </View>
+            <View style={styles.cashflowCol}>
+              <Text style={{ color: theme.surface.textSecondary, fontSize: 11 }}>
+                {activeProfileType === 'business' ? 'Costos Operativos' : 'Gastos Totales'}
+              </Text>
+              <Text style={[styles.cashflowVal, { color: theme.surface.danger }]}>
+                -{formatMoney(cashflowMetrics.expenses, preferences.default_currency, hideBalances)}
+              </Text>
+            </View>
+            <View style={styles.cashflowCol}>
+              <Text style={{ color: theme.surface.textSecondary, fontSize: 11 }}>
+                {activeProfileType === 'business' ? 'Utilidad Neta' : 'Balance Neto'}
+              </Text>
+              <Text
+                style={[
+                  styles.cashflowVal,
+                  {
+                    color:
+                      cashflowMetrics.netProfit >= 0
+                        ? theme.accent.primary
+                        : theme.surface.danger,
+                  },
+                ]}
+              >
+                {formatMoney(cashflowMetrics.netProfit, preferences.default_currency, hideBalances)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Carrusel de Cuentas (Efectivo, Banco X, Banco Y) */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.surface.textPrimary }]}>
-            Mis Cuentas ({profileAccounts.length})
+            Cuentas Activas ({profileAccounts.length})
           </Text>
           <PressableScale onPress={() => router.push('/(tabs)/accounts')}>
             <Text style={[styles.linkText, { color: theme.accent.primary }]}>
-              Gestionar +
+              Ver Movimientos →
             </Text>
           </PressableScale>
         </View>
@@ -214,7 +360,7 @@ export default function DashboardHomeScreen() {
           >
             <Plus size={24} color={theme.accent.primary} />
             <Text style={[styles.addAccountText, { color: theme.accent.primary }]}>
-              Nueva Cuenta
+              + Cuenta
             </Text>
           </PressableScale>
         </ScrollView>
@@ -230,7 +376,7 @@ export default function DashboardHomeScreen() {
           >
             <ArrowDownLeft size={20} color={theme.surface.success} />
             <Text style={[styles.quickActionLabel, { color: theme.surface.textPrimary }]}>
-              Registrar Ingreso
+              Ingreso / Nómina
             </Text>
           </PressableScale>
 
@@ -256,12 +402,25 @@ export default function DashboardHomeScreen() {
           >
             <CreditCard size={20} color={theme.accent.primary} />
             <Text style={[styles.quickActionLabel, { color: theme.surface.textPrimary }]}>
-              Tarjetas y Deudas
+              Tarjetas y Cuotas
+            </Text>
+          </PressableScale>
+
+          <PressableScale
+            onPress={() => router.push('/(tabs)/assistant')}
+            style={[
+              styles.quickActionCard,
+              { backgroundColor: theme.surface.surface1, borderColor: theme.accent.primary },
+            ]}
+          >
+            <Sparkles size={20} color={theme.accent.primary} />
+            <Text style={[styles.quickActionLabel, { color: theme.surface.textPrimary }]}>
+              Chatbot IA
             </Text>
           </PressableScale>
         </View>
 
-        {/* Tarjeta de Consejo Financiero con IA */}
+        {/* Consejo Financiero Dinámico Basado en los Datos Actuales */}
         <PressableScale
           onPress={() => router.push('/(tabs)/assistant')}
           style={[
@@ -275,17 +434,15 @@ export default function DashboardHomeScreen() {
           <View style={styles.aiTipHeader}>
             <Sparkles size={18} color={theme.accent.primary} />
             <Text style={[styles.aiTipTitle, { color: theme.surface.textPrimary }]}>
-              Consejo Financiero Inteligente (Gemini IA)
+              Diagnóstico y Consejo Financiero en Vivo
             </Text>
           </View>
           <Text style={[styles.aiTipBody, { color: theme.surface.textSecondary }]}>
-            {activeProfileType === 'business'
-              ? 'Mantén separados los retiros personales del flujo operativo de tu negocio. Toca aquí para simular tu punto de equilibrio mensual.'
-              : 'Destina al menos el 15% de tu ingreso por nómina a un Certificado de Depósito a Plazo o Fondo de Emergencia antes de gastar en ocio.'}
+            {dynamicFinancialTip}
           </Text>
         </PressableScale>
 
-        {/* Próximos Pagos y Agenda */}
+        {/* Próximos Pagos, Cortes de Tarjetas y Cuotas de Préstamos */}
         <View
           style={[
             styles.upcomingCard,
@@ -296,16 +453,67 @@ export default function DashboardHomeScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <CalendarClock size={18} color={theme.accent.primary} />
               <Text style={[styles.sectionTitle, { color: theme.surface.textPrimary }]}>
-                Próximos Pagos y Cortes
+                Próximos Pagos, Suscripciones y Cortes
               </Text>
             </View>
-            <Text style={[styles.linkText, { color: theme.surface.textSecondary }]}>
-              {recentTransactions.length} movs.
-            </Text>
+            <PressableScale onPress={() => router.push('/(tabs)/planning')}>
+              <Text style={[styles.linkText, { color: theme.accent.primary }]}>
+                Ver Agenda
+              </Text>
+            </PressableScale>
           </View>
-          <Text style={[styles.emptyHint, { color: theme.surface.textSecondary }]}>
-            Tus suscripciones, fechas de corte de tarjetas de crédito y cuotas de préstamos aparecerán aquí ordenadas por prioridad.
-          </Text>
+
+          {profilePayables.length === 0 && profileCards.length === 0 && profileLoans.length === 0 ? (
+            <Text style={[styles.emptyHint, { color: theme.surface.textSecondary }]}>
+              No tienes pagos próximos vencidos. Agrega tus suscripciones, tarjetas de crédito o préstamos en la pestaña "Metas y Deudas".
+            </Text>
+          ) : (
+            <View style={{ gap: 8 }}>
+              {profilePayables.slice(0, 3).map((p) => (
+                <View
+                  key={p.id}
+                  style={[
+                    styles.upcomingRow,
+                    { backgroundColor: theme.surface.surface2, borderColor: theme.surface.border },
+                  ]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.surface.textPrimary, fontWeight: '700', fontSize: 13 }}>
+                      📌 {p.title}
+                    </Text>
+                    <Text style={{ color: theme.surface.textSecondary, fontSize: 11 }}>
+                      Vence: {p.next_due_date} • {p.frequency.toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={{ color: theme.surface.warning, fontWeight: '800', fontSize: 14 }}>
+                    {formatMoney(p.amount, p.currency, hideBalances)}
+                  </Text>
+                </View>
+              ))}
+
+              {profileCards.slice(0, 2).map((c) => (
+                <View
+                  key={c.id}
+                  style={[
+                    styles.upcomingRow,
+                    { backgroundColor: theme.surface.surface2, borderColor: theme.surface.border },
+                  ]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.surface.textPrimary, fontWeight: '700', fontSize: 13 }}>
+                      💳 {c.card_name} ({c.bank_name})
+                    </Text>
+                    <Text style={{ color: theme.surface.textSecondary, fontSize: 11 }}>
+                      Día de Corte: {c.closing_day} • Día Máximo Pago: {c.due_day}
+                    </Text>
+                  </View>
+                  <Text style={{ color: theme.accent.primary, fontWeight: '800', fontSize: 14 }}>
+                    {formatMoney(c.statement_balance, c.currency, hideBalances)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -323,7 +531,7 @@ const styles = StyleSheet.create({
     maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
-    gap: 18,
+    gap: 16,
   },
   topRow: {
     flexDirection: 'row',
@@ -339,7 +547,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heroBalanceBox: {
-    paddingVertical: 14,
+    paddingVertical: 10,
     gap: 4,
   },
   greetingText: {
@@ -361,7 +569,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 8,
+    marginTop: 6,
   },
   statusChip: {
     flexDirection: 'row',
@@ -376,13 +584,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  cashflowCard: {
+    borderRadius: 26,
+    padding: 18,
+    borderWidth: 1,
+    gap: 12,
+  },
+  cashflowRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  cashflowCol: {
+    flex: 1,
+    gap: 4,
+  },
+  cashflowVal: {
+    fontSize: 15,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
   },
   linkText: {
@@ -423,7 +651,7 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   addAccountCard: {
-    width: 135,
+    width: 125,
     borderRadius: 24,
     padding: 16,
     borderWidth: 1,
@@ -438,19 +666,19 @@ const styles = StyleSheet.create({
   },
   quickActionsGrid: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   quickActionCard: {
     flex: 1,
-    borderRadius: 22,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     borderWidth: 1,
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   quickActionLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',
   },
@@ -477,7 +705,15 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     padding: 18,
     borderWidth: 1,
-    gap: 10,
+    gap: 12,
+  },
+  upcomingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   emptyHint: {
     fontSize: 13,

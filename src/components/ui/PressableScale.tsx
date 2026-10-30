@@ -11,7 +11,7 @@ import { SAMSUNG_SPRING } from '../../theme/samsungOneUI';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface PressableScaleProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   scaleTo?: number;
