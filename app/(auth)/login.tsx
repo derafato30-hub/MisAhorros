@@ -55,10 +55,16 @@ export default function LoginScreen() {
         });
         if (error) throw error;
       } else {
+        const redirectUrl =
+          Platform.OS === 'web' && typeof window !== 'undefined'
+            ? window.location.origin
+            : 'https://misahorros-black.vercel.app';
+
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: fullName.trim() || 'Usuario MisAhorros',
             },
@@ -77,17 +83,27 @@ export default function LoginScreen() {
         }
 
         if (!data.session) {
+          setMode('login');
           setMessage({
             type: 'success',
-            text: '¡Cuenta creada! Revisa tu correo para confirmar o inicia sesión directamente.',
+            text: '¡Cuenta registrada! Si ya hiciste clic en el enlace de tu correo, solo presiona "Entrar a MisAhorros".',
           });
         }
       }
     } catch (err: any) {
-      setMessage({
-        type: 'error',
-        text: err?.message || 'Ocurrió un error al autenticar con Supabase.',
-      });
+      const rawMsg = String(err?.message || '');
+      if (rawMsg.includes('seconds') || rawMsg.includes('security purposes')) {
+        setMode('login');
+        setMessage({
+          type: 'success',
+          text: 'Tu cuenta ya fue creada hace unos segundos. Te cambiamos a "Iniciar Sesión" para que entres directo.',
+        });
+      } else {
+        setMessage({
+          type: 'error',
+          text: rawMsg || 'Ocurrió un error al autenticar con Supabase.',
+        });
+      }
     } finally {
       setLoading(false);
     }
