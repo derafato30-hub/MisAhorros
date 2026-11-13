@@ -1,14 +1,8 @@
-// Service Worker para MisAhorros PWA (Instalable en Android, iOS y Escritorio)
-const CACHE_NAME = 'misahorros-pwa-v1';
-const ASSETS_TO_CACHE = ['/', '/manifest.json', '/logo.png'];
+// Service Worker para MisAhorros PWA v2 (Network-First + Limpieza de caché)
+const CACHE_NAME = 'misahorros-pwa-v2';
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE).catch(() => {});
-    })
-  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -26,9 +20,5 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request).then((cached) => cached || caches.match('/'));
-    })
-  );
+  event.respondWith(fetch(event.request));
 });
