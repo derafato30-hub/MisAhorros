@@ -171,17 +171,23 @@ export default function DashboardHomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Selector Superior: Personal vs Mi Negocio */}
+        {/* Selector Superior: Logo compacto + Personal/Mi Negocio + Ocultar Saldos */}
         <View style={styles.topRow}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <PressableScale
+            onPress={() => router.push('/(tabs)/settings')}
+            style={[
+              styles.logoBadge,
+              {
+                backgroundColor: theme.surface.surface1,
+                borderColor: theme.surface.border,
+              },
+            ]}
+          >
             <Image
               source={require('../../assets/images/logo.png')}
-              style={{ width: 34, height: 34, borderRadius: 11 }}
+              style={styles.topLogoImg}
             />
-            <Text style={{ color: theme.surface.textPrimary, fontWeight: '800', fontSize: 16 }}>
-              MisAhorros
-            </Text>
-          </View>
+          </PressableScale>
           <ProfileSwitcherPill />
           <PressableScale
             onPress={toggleHideBalances}
@@ -548,6 +554,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
+  },
+  logoBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  topLogoImg: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
   },
   iconButton: {
     width: 40,

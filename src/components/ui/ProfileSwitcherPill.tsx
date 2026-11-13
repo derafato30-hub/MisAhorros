@@ -120,21 +120,22 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     borderRadius: 9999,
-    padding: 4,
+    padding: 3,
     borderWidth: 1,
     alignSelf: 'center',
-    gap: 4,
+    gap: 3,
+    flexShrink: 1,
   },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    gap: 5,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
     borderRadius: 9999,
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   singleBadge: {
