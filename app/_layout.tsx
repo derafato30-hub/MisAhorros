@@ -81,7 +81,7 @@ export default function RootLayout() {
         <View style={{ width: 36, height: 36, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="small" color={theme.accent.primary} />
         </View>
-        <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 10, fontWeight: '600' }}>
+        <Text style={{ color: theme.surface.textSecondary, fontSize: 13, marginTop: 10, fontWeight: '600' }}>
           Cargando MisAhorros...
         </Text>
       </View>
