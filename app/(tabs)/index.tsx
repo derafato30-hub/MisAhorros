@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowDownLeft,
@@ -22,6 +22,7 @@ import { useSamsungTheme } from '../../src/theme/useSamsungTheme';
 import { formatMoney } from '../../src/theme/samsungOneUI';
 import { ProfileSwitcherPill } from '../../src/components/ui/ProfileSwitcherPill';
 import { PressableScale } from '../../src/components/ui/PressableScale';
+import { InteractiveTutorialOverlay } from '../../src/components/ui/InteractiveTutorialModal';
 
 export default function DashboardHomeScreen() {
   const theme = useSamsungTheme();
@@ -165,12 +166,22 @@ export default function DashboardHomeScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.surface.background }]}>
+      <InteractiveTutorialOverlay screenKey="dashboard" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Selector Superior: Personal vs Mi Negocio */}
         <View style={styles.topRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Image
+              source={require('../../assets/images/logo.png')}
+              style={{ width: 34, height: 34, borderRadius: 11 }}
+            />
+            <Text style={{ color: theme.surface.textPrimary, fontWeight: '800', fontSize: 16 }}>
+              MisAhorros
+            </Text>
+          </View>
           <ProfileSwitcherPill />
           <PressableScale
             onPress={toggleHideBalances}

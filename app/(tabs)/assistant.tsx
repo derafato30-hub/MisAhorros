@@ -23,11 +23,14 @@ import { useSamsungTheme } from '../../src/theme/useSamsungTheme';
 import { formatMoney } from '../../src/theme/samsungOneUI';
 import { ProfileSwitcherPill } from '../../src/components/ui/ProfileSwitcherPill';
 import { PressableScale } from '../../src/components/ui/PressableScale';
+import { InteractiveTutorialOverlay } from '../../src/components/ui/InteractiveTutorialModal';
 
 const QUICK_PROMPTS = [
+  '¿Cómo usar las funciones de la app?',
+  '¿Cómo registro una tarjeta de crédito y su corte?',
   'Registra un gasto de 450 en gasolina',
   'Registra mi ingreso de nómina por 22500',
-  '¿Cuál es mi resumen financiero y capacidad de ahorro?',
+  '¿Cómo hago una transferencia o préstamo?',
   'Crea un presupuesto semanal de 3500',
   'Cambia el tema a modo AMOLED',
 ];
@@ -228,6 +231,41 @@ export default function AssistantTabScreen() {
         return;
       }
 
+      // 4.5. Guía interactiva de cómo ejecutar cualquier acción en MisAhorros
+      if (
+        lower.includes('cómo') ||
+        lower.includes('como') ||
+        lower.includes('tutorial') ||
+        lower.includes('ayuda') ||
+        lower.includes('usar') ||
+        lower.includes('donde') ||
+        lower.includes('dónde')
+      ) {
+        let tutorialReply = '';
+        if (lower.includes('tarjeta') || lower.includes('corte')) {
+          tutorialReply =
+            '💳 **Cómo manejar Tarjetas de Crédito y Cortes:**\n1. Ve a la pestaña inferior **"Metas y Deudas"** (ícono de gráfico).\n2. Asegúrate de estar en la sub-pestaña **"Tarjetas Crédito"** y toca el botón superior **"Agregar"**.\n3. Ingresa el nombre de la tarjeta, banco, límite total, día de corte (1-31) y día máximo de pago.\n4. Para pagar tu tarjeta al contado desde una cuenta bancaria, solo toca **"Pagar Contado"** dentro de la tarjeta.';
+        } else if (lower.includes('transfer') || lower.includes('negocio')) {
+          tutorialReply =
+            '⇄ **Cómo hacer Transferencias o usar Mi Negocio:**\n1. Para cambiar entre tus finanzas personales y tu empresa, toca el interruptor superior **"Personal | Mi Negocio"**.\n2. Para transferir dinero entre cuentas (incluso entre HNL y USD o hacia la caja de tu negocio), ve a la pestaña **"Cuentas"** y toca el botón **"Transferir"**.\n3. Elige cuenta origen, cuenta destino, monto y tasa de cambio.';
+        } else if (lower.includes('préstamo') || lower.includes('prestamo') || lower.includes('deuda') || lower.includes('cuota')) {
+          tutorialReply =
+            '🏦 **Cómo registrar Préstamos (Otorgados o Recibidos) y Cuentas por Pagar:**\n1. Ve a la pestaña **"Metas y Deudas"**.\n2. Toca la píldora **"Por Pagar / Cuotas"** para suscripciones, gastos fijos y control de mora por atraso.\n3. O toca la píldora **"Préstamos 360°"** y luego **"Agregar"** para elegir si es un *Préstamo Otorgado a un Tercero* (por cobrar) o un *Préstamo Bancario Recibido*.';
+        } else if (lower.includes('ahorro') || lower.includes('plazo') || lower.includes('cdp') || lower.includes('pensión') || lower.includes('pension')) {
+          tutorialReply =
+            '📈 **Cómo configurar Metas de Ahorro, Depósitos a Plazo (CDP) y Fondos de Pensión:**\n1. Entra a **"Metas y Deudas"** y desliza las píldoras superiores hasta **"Ahorros & CDP/AFP"**.\n2. Toca **"Agregar"** arriba a la derecha.\n3. Elige entre crear una **Meta de Ahorro** o un **Instrumento Financiero** (Certificado a Plazo Fijo con cálculo de rendimiento neto, Fondo de Pensión AFP/RAP o ETF).';
+        } else {
+          tutorialReply =
+            '🧭 **Guía Rápida para Ejecutar Acciones en MisAhorros:**\n• **Crear Cuentas, Nómina o Gastos**: Ve a la pestaña **"Cuentas"** y usa los botones `+ Ingreso / Nómina`, `- Registrar Gasto`, `Transferir` o `+ Nueva Cuenta`.\n• **Tarjetas, Cuotas, Préstamos, CDP y Presupuestos**: Ve a **"Metas y Deudas"**, elige la categoría arriba y toca **"Agregar"**.\n• **Repetir el Tutorial Interactivo o Descargar App (PWA)**: Ve a **"Perfil y Tema"** y toca **"Ver / Reiniciar Tutorial Interactivo"** o **"Instalar App en este Dispositivo"**.\n• **Desde aquí mismo en el Chat**: Solo dime *"Registra un gasto de 300 en comida"* o *"Crea un presupuesto quincenal de 4000"* y yo lo ejecuto por ti.';
+        }
+
+        await addChatMessage({
+          sender: 'assistant',
+          message_text: tutorialReply,
+        });
+        return;
+      }
+
       // 5. Consulta Financiera Analítica (Usa Gemini API si hay llave o el motor financiero integrado)
       const geminiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
       if (geminiKey) {
@@ -284,6 +322,7 @@ export default function AssistantTabScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.surface.background }]}>
+      <InteractiveTutorialOverlay screenKey="assistant" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

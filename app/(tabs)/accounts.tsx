@@ -27,6 +27,7 @@ import { useSamsungTheme } from '../../src/theme/useSamsungTheme';
 import { CURRENCIES, CurrencyCode, formatMoney } from '../../src/theme/samsungOneUI';
 import { ProfileSwitcherPill } from '../../src/components/ui/ProfileSwitcherPill';
 import { PressableScale } from '../../src/components/ui/PressableScale';
+import { InteractiveTutorialOverlay } from '../../src/components/ui/InteractiveTutorialModal';
 
 type ActiveActionSheet =
   | 'none'
@@ -234,6 +235,7 @@ export default function AccountsTabScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.surface.background }]}>
+      <InteractiveTutorialOverlay screenKey="accounts" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}

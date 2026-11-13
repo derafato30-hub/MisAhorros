@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -126,10 +127,15 @@ export default function LoginScreen() {
               {
                 backgroundColor: theme.accent.softBg,
                 borderColor: theme.accent.primary,
+                overflow: 'hidden',
               },
             ]}
           >
-            <Wallet size={34} color={theme.accent.primary} />
+            <Image
+              source={require('../../assets/images/logo.png')}
+              style={{ width: 76, height: 76, borderRadius: 24 }}
+              resizeMode="cover"
+            />
           </View>
           <Text style={[styles.appTitle, { color: theme.surface.textPrimary }]}>
             MisAhorros

@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "MisAhorros — Finanzas Personales y Negocios con IA",
+  "short_name": "MisAhorros",
+  "description": "Súper-app de finanzas personales y contabilidad para micro-negocios con IA, cuentas multi-moneda, tarjetas de crédito, préstamos, inversiones y presupuestos.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0F19",
+  "theme_color": "#10B981",
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

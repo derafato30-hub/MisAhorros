@@ -1,14 +1,26 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  BookOpen,
   Briefcase,
   Check,
   Coins,
+  Compass,
+  Download,
   EyeOff,
   LogOut,
   Moon,
   Palette,
+  RotateCcw,
   Sparkles,
   Sun,
   Type,
@@ -27,6 +39,11 @@ import {
   ThemeMode,
 } from '../../src/theme/samsungOneUI';
 import { PressableScale } from '../../src/components/ui/PressableScale';
+import {
+  InteractiveTutorialOverlay,
+  resetAllScreenTutorials,
+  SCREEN_TUTORIALS,
+} from '../../src/components/ui/InteractiveTutorialModal';
 
 export default function SettingsScreen() {
   const theme = useSamsungTheme();
@@ -36,6 +53,24 @@ export default function SettingsScreen() {
 
   const [nameInput, setNameInput] = useState(preferences.full_name || '');
   const [savedBanner, setSavedBanner] = useState(false);
+  const [showManualTutorial, setShowManualTutorial] = useState(false);
+  const [showFullGuideList, setShowFullGuideList] = useState(false);
+  const [tutorialResetMsg, setTutorialResetMsg] = useState<string | null>(null);
+  const [pwaMessage, setPwaMessage] = useState<string | null>(null);
+  const [canInstallPwa, setCanInstallPwa] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const checkPrompt = () => {
+        if ((window as any).__deferredPwaPrompt) {
+          setCanInstallPwa(true);
+        }
+      };
+      checkPrompt();
+      window.addEventListener('pwa-install-available', checkPrompt);
+      return () => window.removeEventListener('pwa-install-available', checkPrompt);
+    }
+  }, []);
 
   const handleSaveName = async () => {
     await updatePreferences({ full_name: nameInput.trim() || 'Usuario' });
@@ -43,19 +78,209 @@ export default function SettingsScreen() {
     setTimeout(() => setSavedBanner(false), 2000);
   };
 
+  const handleResetTutorials = async () => {
+    await resetAllScreenTutorials();
+    setShowManualTutorial(true);
+    setTutorialResetMsg(
+      '¡Tutoriales interactivos reactivados! Se mostrarán paso a paso conforme entres a cada pestaña.'
+    );
+    setTimeout(() => setTutorialResetMsg(null), 4000);
+  };
+
+  const handleInstallPWA = async () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const deferredPrompt = (window as any).__deferredPwaPrompt;
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        if (choice?.outcome === 'accepted') {
+          setPwaMessage('¡MisAhorros se está instalando en la pantalla de inicio de tu móvil!');
+        }
+        (window as any).__deferredPwaPrompt = null;
+        setCanInstallPwa(false);
+        return;
+      }
+    }
+
+    setPwaMessage(
+      '📱 Para instalar en tu teléfono: En Chrome/Edge toca el menú (⋮) arriba a la derecha y selecciona "Instalar aplicación" o "Agregar a la pantalla principal". En iPhone (Safari), toca el botón Compartir y elige "Agregar a inicio".'
+    );
+  };
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.surface.background }]}>
+      <InteractiveTutorialOverlay
+        screenKey="settings"
+        forceVisible={showManualTutorial}
+        onClose={() => setShowManualTutorial(false)}
+      />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerArea}>
-          <Text style={[styles.pageTitle, { color: theme.surface.textPrimary }]}>
-            Personalización y Cuenta
+        {/* Cabecera con Logo Oficial de MisAhorros */}
+        <View style={styles.brandRow}>
+          <Image
+            source={require('../../assets/images/logo.png')}
+            style={styles.brandLogo}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.pageTitle, { color: theme.surface.textPrimary }]}>
+              Perfil, Tema y Tutorial
+            </Text>
+            <Text style={[styles.pageSub, { color: theme.surface.textSecondary }]}>
+              Personalización Samsung One UI, Guía Interactiva y App Móvil (PWA)
+            </Text>
+          </View>
+        </View>
+
+        {/* NUEVO: 0. Tutorial Interactivo de Funciones e Instalación de PWA */}
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: theme.surface.surface1, borderColor: theme.accent.primary },
+          ]}
+        >
+          <View style={styles.cardHeader}>
+            <Compass size={18} color={theme.accent.primary} />
+            <Text style={[styles.cardTitle, { color: theme.surface.textPrimary }]}>
+              Tutorial de Funciones y Descarga de App (PWA)
+            </Text>
+          </View>
+
+          <Text style={{ color: theme.surface.textSecondary, fontSize: 13, lineHeight: 19 }}>
+            Aprende a usar cada módulo paso a paso, reactiva el recorrido interactivo cuando entres a cada pantalla o descarga MisAhorros como aplicación nativa en tu celular.
           </Text>
-          <Text style={[styles.pageSub, { color: theme.surface.textSecondary }]}>
-            Ajusta colores, modo oscuro/claro, fuentes, divisas y modalidad laboral
-          </Text>
+
+          <View style={styles.stackList}>
+            <PressableScale
+              onPress={handleResetTutorials}
+              style={[
+                styles.actionBannerBtn,
+                { backgroundColor: theme.accent.primary },
+              ]}
+            >
+              <RotateCcw size={17} color="#0B0F19" />
+              <Text style={styles.actionBannerTextDark}>
+                Iniciar / Reactivar Tutorial Interactivo en Todas las Páginas
+              </Text>
+            </PressableScale>
+
+            <PressableScale
+              onPress={() => setShowFullGuideList(!showFullGuideList)}
+              style={[
+                styles.actionBannerBtn,
+                {
+                  backgroundColor: theme.surface.surface2,
+                  borderColor: theme.accent.primary,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <BookOpen size={17} color={theme.accent.primary} />
+              <Text style={[styles.actionBannerTextLight, { color: theme.surface.textPrimary }]}>
+                {showFullGuideList
+                  ? 'Ocultar Manual Completo de Funciones'
+                  : 'Ver Manual Paso a Paso de Todas las Funciones'}
+              </Text>
+            </PressableScale>
+
+            <PressableScale
+              onPress={handleInstallPWA}
+              style={[
+                styles.actionBannerBtn,
+                {
+                  backgroundColor: theme.accent.softBg,
+                  borderColor: theme.accent.primary,
+                  borderWidth: 1,
+                },
+              ]}
+            >
+              <Download size={17} color={theme.accent.primary} />
+              <Text style={[styles.actionBannerTextLight, { color: theme.accent.primary }]}>
+                {canInstallPwa
+                  ? '📲 Descargar e Instalar MisAhorros (PWA) Ahora'
+                  : '📲 Instalar MisAhorros en mi Dispositivo Móvil (PWA)'}
+              </Text>
+            </PressableScale>
+          </View>
+
+          {tutorialResetMsg && (
+            <View
+              style={[
+                styles.infoAlert,
+                { backgroundColor: theme.accent.softBg, borderColor: theme.accent.primary },
+              ]}
+            >
+              <Text style={{ color: theme.accent.primary, fontSize: 12, fontWeight: '700' }}>
+                {tutorialResetMsg}
+              </Text>
+            </View>
+          )}
+
+          {pwaMessage && (
+            <View
+              style={[
+                styles.infoAlert,
+                { backgroundColor: theme.surface.surface2, borderColor: theme.accent.primary },
+              ]}
+            >
+              <Text style={{ color: theme.surface.textPrimary, fontSize: 12, lineHeight: 18 }}>
+                {pwaMessage}
+              </Text>
+            </View>
+          )}
+
+          {showFullGuideList && (
+            <View style={{ gap: 10, marginTop: 6 }}>
+              {Object.entries(SCREEN_TUTORIALS).map(([key, item]) => (
+                <View
+                  key={key}
+                  style={[
+                    styles.guideSectionBox,
+                    {
+                      backgroundColor: theme.surface.surface2,
+                      borderColor: theme.surface.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: theme.accent.primary,
+                      fontWeight: '800',
+                      fontSize: 14,
+                      marginBottom: 4,
+                    }}
+                  >
+                    {item.screenTitle}
+                  </Text>
+                  {item.steps.map((st, i) => (
+                    <View key={i} style={{ marginTop: 6 }}>
+                      <Text
+                        style={{
+                          color: theme.surface.textPrimary,
+                          fontWeight: '700',
+                          fontSize: 13,
+                        }}
+                      >
+                        {st.title}
+                      </Text>
+                      <Text
+                        style={{
+                          color: theme.surface.textSecondary,
+                          fontSize: 12,
+                          lineHeight: 17,
+                        }}
+                      >
+                        {st.description}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* 1. Datos de Cuenta y Correo Vinculado */}
@@ -397,16 +622,24 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: 16,
   },
-  headerArea: {
-    gap: 4,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
     marginBottom: 4,
   },
+  brandLogo: {
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+  },
   pageTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '800',
   },
   pageSub: {
-    fontSize: 13,
+    fontSize: 12,
+    marginTop: 2,
   },
   card: {
     borderRadius: 28,
@@ -422,6 +655,34 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '800',
+  },
+  actionBannerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+  },
+  actionBannerTextDark: {
+    color: '#0B0F19',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  actionBannerTextLight: {
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  infoAlert: {
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  guideSectionBox: {
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
   },
   emailBadge: {
     fontSize: 13,
